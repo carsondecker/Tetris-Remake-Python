@@ -25,6 +25,10 @@ FPS = 60
 SCREEN_WIDTH = CELL_SIZE * GRID_WIDTH + 1
 SCREEN_HEIGHT = CELL_SIZE * GRID_HEIGHT + 1
 
+class Tetromino:
+    def __init__():
+        pass
+
 class Grid:
     def __init__(self):
         pass
