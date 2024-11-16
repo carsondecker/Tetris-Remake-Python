@@ -23,10 +23,8 @@ class Board:
                     new_x = piece.x + x + dx
                     new_y = piece.y + y + dy
                     
-                    print(self.is_valid_position(new_x, new_y))
                     if not self.is_valid_position(new_x, new_y):
                         return True
-                    print(self.grid[new_y, new_x])
                     if self.grid[new_y, new_x] is not None:
                         return True
         return False
@@ -72,14 +70,14 @@ class Board:
 
     def check_lines(self, piece):
         lines_cleared = []
-        
+
         min_y = max(0, piece.y)
-        max_y = min(BOARD_HEIGHT, piece.y + len(piece.shape))
+        max_y =  min(BOARD_HEIGHT - 1, piece.y + len(piece.shape))
         
-        for y in range(min_y, max_y):
-            if np.all(self.grid[y] != None):
+        for y in range(min_y, max_y + 1):
+            if all(cell is not None for cell in self.grid[y]):
                 lines_cleared.append(y)
-        
+
         clear_type = None
         if lines_cleared:
             tspin_type = self.is_t_spin(piece)
@@ -133,6 +131,7 @@ class Board:
         
         for line in lines:
             self.grid = np.delete(self.grid, line, axis=0)
+        for line in lines:
             self.grid = np.vstack([np.full(BOARD_WIDTH, None), self.grid])
 
     def draw(self, screen, current_piece=None):

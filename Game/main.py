@@ -64,14 +64,12 @@ class Game:
         if self.can_hold:
             if self.held_piece:
                 temp = self.held_piece
-                self.held_piece = self.current_piece
+                self.held_piece = Tetromino(self.current_piece.piece_name)
                 self.current_piece = temp
-                self.held_piece.x = self.held_piece.original_x
-                self.held_piece.y = self.held_piece.original_y
             else:
                 self.held_piece = self.current_piece
-                self.held_piece.x = self.held_piece.original_x
-                self.held_piece.y = self.held_piece.original_y
+                self.current_piece = None
+                self.held_piece = Tetromino(self.held_piece.piece_name)
                 self.spawn_piece()
             self.can_hold = False
     
@@ -101,12 +99,24 @@ class Game:
                     self.current_piece.move(self.board, self.moving_direction, 0)
                     self.last_move_time = current_time
 
+    def draw_hold(self):
+        pygame.draw.rect(self.screen, BOARD_BORDER, (BOARD_OFFSET_X - SIDEBAR_OFFSET - SIDEBAR_WIDTH, BOARD_OFFSET_Y, SIDEBAR_WIDTH, PREVIEW_PIECE_HEIGHT), 1)
+        if self.held_piece:
+            self.draw_preview_piece(self.held_piece, BOARD_OFFSET_X - SIDEBAR_OFFSET - SIDEBAR_WIDTH, BOARD_OFFSET_Y, SIDEBAR_WIDTH, PREVIEW_PIECE_HEIGHT)
+
+    def draw_preview_piece(self, piece, starting_x, starting_y, width, height):
+        print(starting_y + ((height - (1 if self.held_piece.piece_name == 'I' else 2) * CELL_SIZE) // 2))
+        piece.draw(self.screen, starting_x + ((width - len(self.held_piece.shape[0]) * CELL_SIZE) // 2), 
+                   starting_y + ((height - (3 if self.held_piece.piece_name == 'I' else 2) * CELL_SIZE) // 2), True)
+
+
     def draw(self):
         self.screen.fill(BLACK)
         
+        self.board.draw(self.screen)
         self.current_piece.draw(self.screen)
         self.current_piece.draw_ghost(self.screen, self.ghost_surface, self.board)
-        self.board.draw(self.screen)
+        self.draw_hold()
     
         pygame.display.flip()
 

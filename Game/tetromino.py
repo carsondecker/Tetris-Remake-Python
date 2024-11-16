@@ -15,43 +15,71 @@ class Tetromino:
             self.x = BOARD_WIDTH // 2 - len(self.shape[0]) // 2 - 1
         self.y = 18 # +Y goes down
 
-        self.original_x = self.x
-        self.original_y = self.y
-
-    def get_wall_kick_data(self, rotation):
-        if self.piece_name == 'I':
-            return WALL_KICK_DATA['I'][rotation]
-        elif self.piece_name != 'O':
-            return WALL_KICK_DATA['JLSTZ'][rotation]
-        return [(0,0)]
+    def get_wall_kick_tests(self, old_state, new_state):
+        if self.piece_name == 'O':
+            return [(0, 0)]
+        
+        kick_type = 'I' if self.piece_name == 'I' else 'JLSTZ'
+        
+        if old_state == 0:
+            if new_state == 1:  # 0->1
+                test_index = 0
+            else:  # 0->3
+                test_index = 7
+        elif old_state == 1:
+            if new_state == 0:  # 1->0
+                test_index = 1
+            else:  # 1->2
+                test_index = 2
+        elif old_state == 2:
+            if new_state == 1:  # 2->1
+                test_index = 3
+            else:  # 2->3
+                test_index = 4
+        else:  # old_state == 3
+            if new_state == 2:  # 3->2
+                test_index = 5
+            else:  # 3->0
+                test_index = 6
+            
+        return WALL_KICK_DATA[kick_type][test_index]
     
     def rotate(self, board, clockwise=True):
-        # Rotate piece
         if self.piece_name == 'O':
             return True
-
-        if clockwise:
-            new_rotation = (self.rotation_state + 1) % 4
-            self.shape = np.rot90(self.shape, -1)
-        else:
-            new_rotation = (self.rotation_state -1) % 4
-            self.shape = np.rot90(self.shape, 1)
-
-        # Kicking
-        kick_data = self.get_wall_kick_data(self.rotation_state * 2 + (1 if clockwise else 0))
-
-        # Check each new position and move there if it works
-        for kick_x, kick_y in kick_data:
+            
+        old_state = self.rotation_state
+        new_state = (old_state + (1 if clockwise else 3)) % 4  # Changed from -1 to 3 for CCW
+        
+        # Store original position and rotation
+        original_x = self.x
+        original_y = self.y
+        original_shape = self.shape.copy()
+        
+        # Perform rotation
+        self.shape = np.rot90(self.shape, -1 if clockwise else 1)
+        
+        # Try basic rotation first
+        if not board.check_collision(self, 0, 0):
+            self.rotation_state = new_state
+            board.last_rotation = True
+            return True
+            
+        # Get and try wall kicks
+        kick_tests = self.get_wall_kick_tests(old_state, new_state)
+        
+        for kick_x, kick_y in kick_tests:
             if not board.check_collision(self, kick_x, kick_y):
                 self.x += kick_x
                 self.y += kick_y
-                self.rotation_state = new_rotation
+                self.rotation_state = new_state
+                board.last_rotation = True
                 return True
-            
-        if clockwise:
-            self.shape = np.rot90(self.shape, 1)
-        else:
-            self.shape = np.rot90(self.shape, -1)
+        
+        # If no kick worked, restore original position and rotation
+        self.x = original_x
+        self.y = original_y
+        self.shape = original_shape
         return False
     
     def move(self, board, dx, dy):
