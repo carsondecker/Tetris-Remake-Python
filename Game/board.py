@@ -1,8 +1,9 @@
 from constants import *
+from tetromino import Tetromino
 
 class Board:
     def __init__(self):
-        self.grid = np.zeros((BOARD_HEIGHT, BOARD_WIDTH), dtype=object)
+        self.grid = np.empty((BOARD_HEIGHT, BOARD_WIDTH), dtype=object)
         self.last_rotation = False  # Track if last move was a rotation
         self.last_kick_index = 0    # Track which kick was used in last rotation
         self.score = 0
@@ -18,12 +19,14 @@ class Board:
         # Loop through all minos and check if they can move to the new location
         for x in range(shape_width):
             for y in range(shape_height):
-                if piece.piece[y, x]:
+                if piece.shape[y, x]:
                     new_x = piece.x + x + dx
                     new_y = piece.y + y + dy
                     
+                    print(self.is_valid_position(new_x, new_y))
                     if not self.is_valid_position(new_x, new_y):
                         return True
+                    print(self.grid[new_y, new_x])
                     if self.grid[new_y, new_x] is not None:
                         return True
         return False
@@ -65,16 +68,16 @@ class Board:
         return None
 
     def is_perfect_clear(self):
-        return not any(any(row) for row in self.grid)
+        return not np.any(self.grid != None)
 
     def check_lines(self, piece):
         lines_cleared = []
         
         min_y = max(0, piece.y)
-        max_y = min(BOARD_HEIGHT, piece.y + len(piece.piece))
+        max_y = min(BOARD_HEIGHT, piece.y + len(piece.shape))
         
         for y in range(min_y, max_y):
-            if all(cell is not None for cell in self.grid[y]):
+            if np.all(self.grid[y] != None):
                 lines_cleared.append(y)
         
         clear_type = None
@@ -131,3 +134,33 @@ class Board:
         for line in lines:
             self.grid = np.delete(self.grid, line, axis=0)
             self.grid = np.vstack([np.full(BOARD_WIDTH, None), self.grid])
+
+    def draw(self, screen, current_piece=None):
+        # Grid
+        for x in range(BOARD_OFFSET_X, BOARD_WIDTH * CELL_SIZE + BOARD_OFFSET_X + 1, CELL_SIZE):
+           pygame.draw.line(
+               screen,
+               BOARD_LINE,
+               (x, BOARD_OFFSET_Y),
+               (x, GRID_HEIGHT * CELL_SIZE + BOARD_OFFSET_Y)
+           )
+        
+        # Draw horizontal grid lines
+        for y in range(BOARD_OFFSET_Y, GRID_HEIGHT * CELL_SIZE + BOARD_OFFSET_Y + 1, CELL_SIZE):
+            pygame.draw.line(
+                screen,
+                BOARD_LINE,
+                (BOARD_OFFSET_X, y),
+                (BOARD_WIDTH * CELL_SIZE + BOARD_OFFSET_X, y)
+            )
+        
+        pygame.draw.rect(screen, BOARD_BORDER, pygame.Rect(BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_WIDTH * CELL_SIZE + 1, GRID_HEIGHT * CELL_SIZE + 1), 1)
+
+        # Pieces on board
+        for x in range(BOARD_WIDTH):
+            for y in reversed(range(BOARD_HEIGHT)):
+                if self.grid[y, x]:
+                    pygame.draw.rect(screen, self.grid[y, x],
+                        (BOARD_OFFSET_X + x * CELL_SIZE,
+                        BOARD_OFFSET_Y + (y - GRID_HEIGHT) * CELL_SIZE,
+                        CELL_SIZE, CELL_SIZE))

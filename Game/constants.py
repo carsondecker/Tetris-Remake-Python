@@ -1,5 +1,7 @@
-import pygame
 import numpy as np
+import pygame
+
+FPS = 60
 
 # Colors
 BLACK = (0, 0, 0)
@@ -11,41 +13,42 @@ CYAN = (0, 255, 255)
 YELLOW = (255, 255, 0)
 PURPLE = (255, 0, 255)
 ORANGE = (255, 165, 0)
+BOARD_BORDER = (40, 40, 40)
+BOARD_LINE = (70, 70, 70)
 
 # Game dimensions
 CELL_SIZE = 30
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 40
-VISIBLE_HEIGHT = 20
+GRID_HEIGHT = 20
 BOARD_OFFSET_X = 50
 BOARD_OFFSET_Y = 50
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 700
 
 # Pieces in starting position
-# Each entry is shape as an array, color of piece, and the index of the bottom of the piece
 PIECES = {
     'I': (np.array([[0, 0, 0, 0],
                     [1, 1, 1, 1],
                     [0, 0, 0, 0],
-                    [0, 0, 0, 0]]), CYAN, 1),
+                    [0, 0, 0, 0]]), CYAN),
     'O': (np.array([[1, 1],
-                    [1, 1]]), YELLOW, 1),
+                    [1, 1]]), YELLOW),
     'T': (np.array([[0, 1, 0],
                     [1, 1, 1],
-                    [0, 0, 0]]), PURPLE, 1),
+                    [0, 0, 0]]), PURPLE),
     'S': (np.array([[0, 1, 1],
                     [1, 1, 0],
-                    [0, 0, 0]]), GREEN, 1),
+                    [0, 0, 0]]), GREEN),
     'Z': (np.array([[1, 1, 0],
                     [0, 1, 1],
-                    [0, 0, 0]]), RED, 1),
+                    [0, 0, 0]]), RED),
     'J': (np.array([[1, 0, 0],
                     [1, 1, 1],
-                    [0, 0, 0]]), BLUE, 1),
+                    [0, 0, 0]]), BLUE),
     'L': (np.array([[0, 0, 1],
                     [1, 1, 1],
-                    [0, 0, 0]]), ORANGE, 1)
+                    [0, 0, 0]]), ORANGE)
 }
 
 # SRS Wall Kicks
