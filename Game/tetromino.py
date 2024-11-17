@@ -7,6 +7,7 @@ class Tetromino:
         self.piece_name = piece_name
         self.shape, self.color = PIECES[piece_name]
         self.shape = np.copy(self.shape)
+        self.last_kick_index = 0
 
         # Set starting position
         if piece_name in ['I', 'O']:

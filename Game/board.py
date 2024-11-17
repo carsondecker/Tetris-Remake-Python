@@ -44,6 +44,7 @@ class Board:
         
         center_x = piece.x + 1
         center_y = piece.y + 1
+        
         corners = [
             (center_x - 1, center_y - 1),
             (center_x + 1, center_y - 1),
@@ -51,19 +52,32 @@ class Board:
             (center_x + 1, center_y + 1)
         ]
         
-        blocked_corners = 0
-        front_corners = 0
-        for i, (x, y) in enumerate(corners):
-            if not self.is_valid_position(x, y) or (self.grid[y, x] is not None):
-                blocked_corners += 1
-                if i < 2:
-                    front_corners += 1
+        blocked_corners = sum(
+            1 for x, y in corners
+            if not self.is_valid_position(x, y) or self.grid[y, x] is not None
+        )
         
-        if blocked_corners >= 3:
-            return "T-SPIN"
-        elif blocked_corners >= 2 and front_corners == 2:
+        if blocked_corners < 3:
+            return None
+        
+        front_corners = None
+        if piece.rotation_state == 0:  # Facing up
+            front_corners = corners[:2]
+        elif piece.rotation_state == 1:  # Facing right
+            front_corners = [corners[1], corners[3]]
+        elif piece.rotation_state == 2:  # Facing down
+            front_corners = corners[2:]
+        elif piece.rotation_state == 3:  # Facing left
+            front_corners = [corners[0], corners[2]]
+        
+        front_corner_check = any(
+            self.is_valid_position(x, y) and self.grid[y, x] is None
+            for x, y in front_corners
+        )
+
+        if self.last_kick_index < 4 and front_corner_check:
             return "MINI T-SPIN"
-        return None
+        return "T-SPIN"
 
     def is_perfect_clear(self):
         return not np.any(self.grid != None)
@@ -111,7 +125,10 @@ class Board:
                 self.back_to_back = 0
         else:
             self.combo = -1
-            
+        
+        if clear_type:
+            print(clear_type)
+
         if lines_cleared:
             self.remove_lines(lines_cleared)
             perfect_clear = self.is_perfect_clear()
@@ -123,7 +140,7 @@ class Board:
                 'combo': max(0, self.combo),
                 'back_to_back': self.back_to_back
             }
-            
+        
         return None
 
     def remove_lines(self, lines):

@@ -166,12 +166,20 @@ class Game:
                         elif event.key == pygame.K_UP or event.key == pygame.K_x:
                             if self.current_piece:
                                 self.current_piece.rotate(self.board)
-                                self.board.last_rotation = True
+                                # Last rotation isn't true if the piece can fall more because of the way t-spins are calculated
+                                if self.current_piece.get_ghost_position(self.board) == self.current_piece.y:
+                                    self.board.last_rotation = True
+                                else:
+                                    self.board.last_rotation = False
                         
                         elif event.key == pygame.K_z:
                             if self.current_piece:
                                 self.current_piece.rotate(self.board, False)
-                                self.board.last_rotation = True
+                                # Last rotation isn't true if the piece can fall more because of the way t-spins are calculated
+                                if self.current_piece.get_ghost_position(self.board) == self.current_piece.y:
+                                    self.board.last_rotation = True
+                                else:
+                                    self.board.last_rotation = False
                         
                         elif event.key == pygame.K_SPACE:
                             self.hard_drop()
