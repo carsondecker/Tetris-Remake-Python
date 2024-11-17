@@ -21,27 +21,25 @@ class Tetromino:
         
         kick_type = 'I' if self.piece_name == 'I' else 'JLSTZ'
         
-        if old_state == 0:
-            if new_state == 1:  # 0->1
-                test_index = 0
-            else:  # 0->3
-                test_index = 7
-        elif old_state == 1:
-            if new_state == 0:  # 1->0
-                test_index = 1
-            else:  # 1->2
-                test_index = 2
-        elif old_state == 2:
-            if new_state == 1:  # 2->1
-                test_index = 3
-            else:  # 2->3
-                test_index = 4
-        else:  # old_state == 3
-            if new_state == 2:  # 3->2
-                test_index = 5
-            else:  # 3->0
-                test_index = 6
-            
+        if old_state == 0 and new_state == 1:  # 0>>1
+            test_index = 0
+        elif old_state == 1 and new_state == 0:  # 1>>0
+            test_index = 1
+        elif old_state == 1 and new_state == 2:  # 1>>2
+            test_index = 2
+        elif old_state == 2 and new_state == 1:  # 2>>1
+            test_index = 3
+        elif old_state == 2 and new_state == 3:  # 2>>3
+            test_index = 4
+        elif old_state == 3 and new_state == 2:  # 3>>2
+            test_index = 5
+        elif old_state == 3 and new_state == 0:  # 3>>0
+            test_index = 6
+        elif old_state == 0 and new_state == 3:  # 0>>3
+            test_index = 7
+        else:
+            return [(0, 0)]
+        
         return WALL_KICK_DATA[kick_type][test_index]
     
     def rotate(self, board, clockwise=True):
@@ -49,37 +47,45 @@ class Tetromino:
             return True
             
         old_state = self.rotation_state
-        new_state = (old_state + (1 if clockwise else 3)) % 4  # Changed from -1 to 3 for CCW
+        new_state = (old_state + (1 if clockwise else 3)) % 4
         
-        # Store original position and rotation
+        # Store original position and shape
         original_x = self.x
         original_y = self.y
         original_shape = self.shape.copy()
         
-        # Perform rotation
+        # Rotate the shape
         self.shape = np.rot90(self.shape, -1 if clockwise else 1)
         
         # Try basic rotation first
-        if not board.check_collision(self, 0, 0):
+        if not board.check_collision(self):
             self.rotation_state = new_state
             board.last_rotation = True
+            board.last_kick_index = 0
             return True
-            
+        
         # Get and try wall kicks
         kick_tests = self.get_wall_kick_tests(old_state, new_state)
         
-        for kick_x, kick_y in kick_tests:
-            if not board.check_collision(self, kick_x, kick_y):
-                self.x += kick_x
-                self.y += kick_y
+        for i, (kick_x, kick_y) in enumerate(kick_tests):
+            self.x = original_x + kick_x
+            self.y = original_y - kick_y  # Negative because kicks use opposite Y direction
+            
+            if not board.check_collision(self):
                 self.rotation_state = new_state
                 board.last_rotation = True
+                board.last_kick_index = i
                 return True
+                
+            # Reset position for next kick test
+            self.x = original_x
+            self.y = original_y
         
-        # If no kick worked, restore original position and rotation
+        # If no kicks worked, restore original state
+        self.shape = original_shape
         self.x = original_x
         self.y = original_y
-        self.shape = original_shape
+        self.rotation_state = old_state
         return False
     
     def move(self, board, dx, dy):

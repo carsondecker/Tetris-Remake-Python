@@ -28,15 +28,18 @@ class Game:
         self.lines_cleared = 0
         
         self.clock = pygame.time.Clock()
-        self.gravity = 50 # In 'G', where 1G is moving down 1 cell per frame
+        self.gravity = .02 # In 'G', where 1G is moving down 1 cell per frame
+        self.gravity_count = 0
         self.last_drop_time = pygame.time.get_ticks()
         self.lock_delay = 500  # Time in ms before piece locks
         self.last_move_time = 0
         self.lock_time = 0
         
         # Handling
-        self.das = 125
-        self.arr = 0
+        self.sdf = 1000 # * Gravity (1000 is instant for .02G)
+        self.das = 125 # ms
+        self.arr = 0 # ms
+        self.is_soft_dropping = False
         self.last_key_down_time = 0
         self.moving_direction = 0
         self.reset_das = False
@@ -132,6 +135,9 @@ class Game:
         pygame.display.flip()
 
     def handle_events(self):
+        keys = pygame.key.get_pressed()
+        self.is_soft_dropping = keys[pygame.K_DOWN]
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False 
@@ -157,7 +163,7 @@ class Game:
                             if self.current_piece:
                                 self.current_piece.move(self.board, 1, 0)
                         
-                        elif event.key == pygame.K_UP:
+                        elif event.key == pygame.K_UP or event.key == pygame.K_x:
                             if self.current_piece:
                                 self.current_piece.rotate(self.board)
                                 self.board.last_rotation = True
@@ -189,15 +195,33 @@ class Game:
                 # Handle DAS movement
                 self.handle_das()
                 
-                # Handle piece dropping
-                if current_time - self.last_drop_time > self.gravity:
-                    if self.current_piece:
-                        if not self.board.check_collision(self.current_piece, 0, 1):
-                            self.current_piece.move(self.board, 0, 1)
-                            self.lock_time = current_time
-                        elif current_time - self.lock_time >= self.lock_delay:
+                if self.current_piece:
+                    current_gravity = self.gravity * (self.sdf if self.is_soft_dropping else 1)
+
+                    self.gravity_count += current_gravity
+                    cells_to_drop = int(self.gravity_count)
+                    
+                    if cells_to_drop > 0:
+                        self.gravity_count -= cells_to_drop
+                        
+                        # Try to drop the piece by the calculated amount
+                        actual_drop = 0
+                        for i in range(cells_to_drop):
+                            if not self.board.check_collision(self.current_piece, 0, 1):
+                                self.current_piece.move(self.board, 0, 1)
+                                actual_drop += 1
+                            else:
+                                break
+                        
+                        # If we couldn't drop at all, start lock delay
+                        if actual_drop == 0 and current_time - self.lock_time >= self.lock_delay:
                             self.lock_piece()
-                    self.last_drop_time = current_time
+                        elif actual_drop > 0:
+                            self.lock_time = current_time
+                
+                # Handle events and update display
+                self.handle_events()
+                self.draw()
                 
                 # Handle events and update display
                 self.handle_events()

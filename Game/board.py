@@ -11,7 +11,7 @@ class Board:
         self.combo = -1  # Start at -1 so first clear gives combo of 0
         
     def is_valid_position(self, x, y):
-        return 0 <= x < BOARD_WIDTH and 0 <= y < BOARD_HEIGHT
+        return (0 <= x < BOARD_WIDTH) and (0 <= y < BOARD_HEIGHT)
     
     def check_collision(self, piece, dx=0, dy=0):
         shape_height, shape_width = np.shape(piece.shape)
