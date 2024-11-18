@@ -16,35 +16,43 @@ class Game:
         # Create single ghost surface for all pieces
         self.ghost_surface = pygame.Surface((BOARD_WIDTH * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE), pygame.SRCALPHA)
         
+        self.initialize_game_state()
+        
+        self.clock = pygame.time.Clock()
+        self.running = False
+
+    def initialize_game_state(self):
+        """Initialize/reset all game state variables"""
         self.board = Board()
         self.current_piece = None
         self.next_pieces = []
         self.held_piece = None
         self.can_hold = True
         
-        self.running = False
         self.paused = False
         self.game_over = False
         self.lines_cleared = 0
         
-        self.clock = pygame.time.Clock()
-        self.gravity = .02 # In 'G', where 1G is moving down 1 cell per frame
+        self.gravity = .02
         self.gravity_count = 0
         self.last_drop_time = pygame.time.get_ticks()
-        self.lock_delay = 500  # Time in ms before piece locks
+        self.lock_delay = 500
         self.last_move_time = 0
         self.lock_time = 0
         
         # Handling
-        self.sdf = 1000 # * Gravity (1000 is instant for .02G)
-        self.das = 125 # ms
-        self.arr = 0 # ms
+        self.sdf = 1000
+        self.das = 125
+        self.arr = 0
         self.is_soft_dropping = False
         self.last_key_down_time = 0
         self.moving_direction = 0
         self.reset_das = False
         
         self.fill_next_queue()
+
+    def restart_game(self):
+        self.initialize_game_state()
 
     def fill_next_queue(self):
         if len(self.next_pieces) <= 7:
@@ -80,7 +88,7 @@ class Game:
     def lock_piece(self):
         if self.current_piece:
             self.board.add_to_board(self.current_piece)
-            self.board.check_lines(self.current_piece)
+            self.board.garbage_calc(self.board.check_lines(self.current_piece)) # CHANGE TO SEND LINES LATER
             self.current_piece = None
             self.can_hold = True
             self.spawn_piece()
@@ -142,6 +150,8 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False 
             elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    self.restart_game()
                 if not self.game_over:
                     if event.key == pygame.K_p:
                         self.paused = not self.paused

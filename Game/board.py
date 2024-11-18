@@ -1,3 +1,4 @@
+import random
 from constants import *
 from tetromino import Tetromino
 
@@ -6,9 +7,9 @@ class Board:
         self.grid = np.empty((BOARD_HEIGHT, BOARD_WIDTH), dtype=object)
         self.last_rotation = False  # Track if last move was a rotation
         self.last_kick_index = 0    # Track which kick was used in last rotation
-        self.score = 0
-        self.back_to_back = 0
+        self.back_to_back = -1
         self.combo = -1  # Start at -1 so first clear gives combo of 0
+        self.garbage_queued = 0
         
     def is_valid_position(self, x, y):
         return (0 <= x < BOARD_WIDTH) and (0 <= y < BOARD_HEIGHT)
@@ -119,15 +120,12 @@ class Board:
         
         if lines_cleared:
             self.combo += 1
-            if clear_type in ["TETRIS", "T-SPIN SINGLE", "T-SPIN DOUBLE", "T-SPIN TRIPLE"]:
+            if clear_type in ["TETRIS", "T-SPIN SINGLE", "T-SPIN DOUBLE", "T-SPIN TRIPLE", "MINI T-SPIN SINGLE"]:
                 self.back_to_back += 1
             else:
-                self.back_to_back = 0
+                self.back_to_back = -1
         else:
             self.combo = -1
-        
-        if clear_type:
-            print(clear_type)
 
         if lines_cleared:
             self.remove_lines(lines_cleared)
@@ -150,6 +148,66 @@ class Board:
             self.grid = np.delete(self.grid, line, axis=0)
         for line in lines:
             self.grid = np.vstack([np.full(BOARD_WIDTH, None), self.grid])
+
+    def add_garbage_lines(self, num):
+        self.grid = np.delete(self.grid, range(num), axis=0)
+        for i in range(num):
+            row = np.empty(BOARD_WIDTH, dtype=object)
+            hole = random.randint(0, BOARD_WIDTH - 1)
+            for j in range(BOARD_WIDTH):
+                if j != hole:
+                    row[j] = GRAY
+            self.grid = np.vstack([self.grid, row])
+            
+    def garbage_calc(self, clear_dict):
+        if not clear_dict or clear_dict['lines'] == 0:
+            return 0
+
+        # Attack & Combo Table taken from jstris
+        attack_table = {
+            'SINGLE': 0,
+            'DOUBLE': 1,
+            'TRIPLE': 2,
+            'TETRIS': 4,
+            'T-SPIN DOUBLE': 4,
+            'T-SPIN TRIPLE': 6,
+            'T-SPIN SINGLE': 2,
+            'T-SPIN MINI SINGLE': 0
+        }
+
+        lines_sent = 0
+        if clear_dict['clear_type']:
+            lines_sent += attack_table[clear_dict['clear_type']]
+        if clear_dict['perfect_clear']:
+            lines_sent += 10
+        if clear_dict['back_to_back'] > 0:
+            lines_sent += 1
+        
+        combo = clear_dict['combo']
+        if combo > 1:
+            if combo < 5:
+                lines_sent += 1
+            elif combo < 7:
+                lines_sent += 2
+            elif combo < 9:
+                lines_sent += 3
+            elif combo < 12:
+                lines_sent += 4
+            else:
+                lines_sent += 5
+
+        return lines_sent
+
+    def take_garbage(self, num):
+        self.garbage_queued += num
+
+    def send_garbage(self, num):
+        if num <= self.garbage_queued:
+            self.garbage_queued -= num
+        else:
+            # Implement sending lines later
+            # SEND LINES HERE
+            self.garbage_queued = 0
 
     def draw(self, screen, current_piece=None):
         # Grid
