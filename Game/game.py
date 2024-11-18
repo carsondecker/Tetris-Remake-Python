@@ -6,9 +6,13 @@ from tetromino import Tetromino
 from constants import *
 
 class Game:
-    def __init__(self):
+    def __init__(self, conn, seed):
         pygame.init()
         
+        self.conn = conn
+        self.seed = seed
+        self.piece_generator = random.Random(seed)
+
         # Display setup
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("Tetris")
@@ -22,7 +26,6 @@ class Game:
         self.running = False
 
     def initialize_game_state(self):
-        """Initialize/reset all game state variables"""
         self.board = Board()
         self.current_piece = None
         self.next_pieces = []
@@ -57,7 +60,7 @@ class Game:
     def fill_next_queue(self):
         if len(self.next_pieces) <= 7:
             bag = list(map(lambda x: Tetromino(x), PIECES.keys()))
-            random.shuffle(bag)
+            self.piece_generator.shuffle(bag)
             self.next_pieces.extend(bag)
         if not self.current_piece:
             self.spawn_piece()
@@ -88,7 +91,7 @@ class Game:
     def lock_piece(self):
         if self.current_piece:
             self.board.add_to_board(self.current_piece)
-            self.board.garbage_calc(self.board.check_lines(self.current_piece)) # CHANGE TO SEND LINES LATER
+            self.board.check_lines(self.current_piece)
             self.current_piece = None
             self.can_hold = True
             self.spawn_piece()
@@ -142,20 +145,13 @@ class Game:
     
         pygame.display.flip()
 
-    def handle_events(self):
+    def handle_ingame_events(self, events):
         keys = pygame.key.get_pressed()
         self.is_soft_dropping = keys[pygame.K_DOWN]
         
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    self.restart_game()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
                 if not self.game_over:
-                    if event.key == pygame.K_p:
-                        self.paused = not self.paused
-                    
                     if not self.paused:
                         if event.key == pygame.K_LEFT:
                             if self.moving_direction == 1:
@@ -203,63 +199,66 @@ class Game:
                        (event.key == pygame.K_RIGHT and self.moving_direction == 1):
                         self.moving_direction = 0
     
-    def update(self):
-        while self.running:
-            self.clock.tick(FPS)
-            
-            if not self.paused and not self.game_over:
-                current_time = pygame.time.get_ticks()
-                
-                # Handle DAS movement
-                self.handle_das()
-                
-                if self.current_piece:
-                    current_gravity = self.gravity * (self.sdf if self.is_soft_dropping else 1)
+    # Separated from ingame events because they need to be done differently in multiplayer
+    def handle_broad_events(self, events):
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.running = False 
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                        self.restart_game()
+                elif event.key == pygame.K_p:
+                        self.paused = not self.paused
 
-                    self.gravity_count += current_gravity
-                    cells_to_drop = int(self.gravity_count)
-                    
-                    if cells_to_drop > 0:
-                        self.gravity_count -= cells_to_drop
-                        
-                        # Try to drop the piece by the calculated amount
-                        actual_drop = 0
-                        for i in range(cells_to_drop):
-                            if not self.board.check_collision(self.current_piece, 0, 1):
-                                self.current_piece.move(self.board, 0, 1)
-                                actual_drop += 1
-                            else:
-                                break
-                        
-                        # If we couldn't drop at all, start lock delay
-                        if actual_drop == 0 and current_time - self.lock_time >= self.lock_delay:
-                            self.lock_piece()
-                        elif actual_drop > 0:
-                            self.lock_time = current_time
-                
-                # Handle events and update display
-                self.handle_events()
-                self.draw()
-                
-                # Handle events and update display
-                self.handle_events()
-                self.draw()
+    def handle_events(self):
+        events = pygame.event.get()
+        self.handle_broad_events(events)
+        self.handle_ingame_events(events)
+
+    def update(self):
+        self.clock.tick(FPS)
+
+        if not self.paused and not self.game_over:
+            current_time = pygame.time.get_ticks()
+            # Handle DAS movement
+            self.handle_das()
             
-            else:
-                self.handle_events()
-                self.draw()
+            if self.current_piece:
+                current_gravity = self.gravity * (self.sdf if self.is_soft_dropping else 1)
+
+                self.gravity_count += current_gravity
+                cells_to_drop = int(self.gravity_count)
+                
+                if cells_to_drop > 0:
+                    self.gravity_count -= cells_to_drop
+                    
+                    # Try to drop the piece by the calculated amount
+                    actual_drop = 0
+                    for i in range(cells_to_drop):
+                        if not self.board.check_collision(self.current_piece, 0, 1):
+                            self.current_piece.move(self.board, 0, 1)
+                            actual_drop += 1
+                        else:
+                            break
+                    
+                    # If we couldn't drop at all, start lock delay
+                    if actual_drop == 0 and current_time - self.lock_time >= self.lock_delay:
+                        self.lock_piece()
+                    elif actual_drop > 0:
+                        self.lock_time = current_time
+                
+        self.handle_events()
+        self.draw()
+
+    def run(self):
+        self.running = True
+        while self.running:
+            self.update()
         
         pygame.quit()
         sys.exit()
 
-    def run(self):
-        self.running = True
-        self.update()
-
-
-def main():
-    game = Game()
-    game.run()
-
 if __name__ == "__main__":
-    main()
+    seed = random.randint(0, 2**32 - 1)
+    game = Game(None, seed)
+    game.run()

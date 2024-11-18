@@ -125,6 +125,9 @@ class Board:
             else:
                 self.back_to_back = -1
         else:
+            if self.garbage_queued != 0:
+                self.add_garbage_lines(self.garbage_queued)
+                self.garbage_queued = 0
             self.combo = -1
 
         if lines_cleared:
@@ -204,10 +207,11 @@ class Board:
     def send_garbage(self, num):
         if num <= self.garbage_queued:
             self.garbage_queued -= num
-        else:
-            # Implement sending lines later
-            # SEND LINES HERE
-            self.garbage_queued = 0
+            return 0
+        
+        sent = num - self.garbage_queued
+        self.garbage_queued = 0
+        return sent
 
     def draw(self, screen, current_piece=None):
         # Grid
