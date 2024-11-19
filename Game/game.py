@@ -134,6 +134,11 @@ class Game:
             self.draw_preview_piece(self.next_pieces[i], BOARD_OFFSET_X + (BOARD_WIDTH * CELL_SIZE + 1) + SIDEBAR_OFFSET,
                                      BOARD_OFFSET_Y + PREVIEW_PIECE_HEIGHT * i, SIDEBAR_WIDTH, PREVIEW_PIECE_HEIGHT)
 
+    def draw_garbage_queue(self):
+        pygame.draw.rect(self.screen, RED, (BOARD_OFFSET_X - GARBAGE_QUEUE_OFFSET - GARBAGE_QUEUE_WIDTH, BOARD_OFFSET_Y + GRID_HEIGHT * CELL_SIZE - self.board.garbage_queued * CELL_SIZE, 
+                         GARBAGE_QUEUE_WIDTH, self.board.garbage_queued * CELL_SIZE))
+        pygame.draw.rect(self.screen, BOARD_BORDER, (BOARD_OFFSET_X - GARBAGE_QUEUE_OFFSET - GARBAGE_QUEUE_WIDTH, BOARD_OFFSET_Y, GARBAGE_QUEUE_WIDTH, GRID_HEIGHT * CELL_SIZE), 1)
+
     def draw(self):
         self.screen.fill(BLACK)
         
@@ -142,6 +147,7 @@ class Game:
         self.current_piece.draw_ghost(self.screen, self.ghost_surface, self.board)
         self.draw_hold()
         self.draw_next_queue()
+        self.draw_garbage_queue()
     
         pygame.display.flip()
 
